@@ -1,0 +1,64 @@
+name: remove specified label from PR that no update during 3 days
+
+on:
+  workflow_call:
+    inputs:
+      target-label:
+        description: Name of label to be removed
+        type: string
+        default: "reviewapps"
+      target-days:
+        description: The number of days to delete a label when there are no updates to the PR
+        type: number
+        default: 3
+    secrets: {}
+
+jobs:
+  labeling:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+      issues: write
+    steps:
+      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            // MEMO: please comment out the follwoing if you execute this script in local
+            //import { Octokit } from "@octokit/rest";
+            //import fetch from "node-fetch";
+            //const github = new Octokit({
+            //  auth: "${YOUR_TOKEN}",
+            //  request: {
+            //    fetch: fetch,
+            //  },
+            //})
+            //const context = {
+            //  "repo": {
+            //    "owner": "cloudnativedaysjp",
+            //    "repo": "dreamkast",
+            //  }
+            //}
+            // const targetLabel = 'reviewapps';
+            // const targetDays = 3;
+
+            const targetLabel = '${{ inputs.target-label }}';
+            const targetDays =  ${{ inputs.target-days }};
+
+            const now = new Date();
+            const borderDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - targetDays);
+            const prs = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+            });
+            prs.data.filter(d => {
+              const updatedAt = new Date(Date.parse(d.updated_at));
+              return updatedAt < borderDate && d.labels.some(label => label.name == targetLabel);
+            }).map(pr => {
+              github.rest.issues.removeLabel({
+                name: targetLabel,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+              })
+            });
