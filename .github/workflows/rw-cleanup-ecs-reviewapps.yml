@@ -1,0 +1,130 @@
+name: cleanup ECS manifests for Review Apps
+
+on:
+  workflow_call:
+    inputs:
+      prefix:
+        description: the prefix name of the cleanup target in reviewapps directory (e.g. dk-)
+        type: string
+      aws_region:
+        type: string
+        default: us-west-2
+    secrets:
+      APP_ID:
+        description: the ID of GitHub App with the role that pull/push to dreamkast-infra
+        required: true
+      APP_PRIVATE_KEY:
+        description: the private key of GitHub App with the role that pull/push to dreamkast-infra
+        required: true
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+
+# this workflow should not work with cleanup workflow
+concurrency: reviewapps
+
+jobs:
+  cleanup:
+    name: create reviewapp files to dreamkast-infra
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set current unixtime as env variable
+        env:
+          TZ: 'Asia/Tokyo'
+        run: echo "UNIXTIME=$(date +'+%s')" >> "$GITHUB_ENV"
+
+      - name: Generate token
+        id: app-token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1.12.0
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: cloudnativedaysjp
+          repositories: dreamkast-infra
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Install ecspresso
+        uses: kayac/ecspresso@b4cc24aaeba4216ecd80632953f2b9db51e8489c # v2
+
+      - name: Checkout dreamkast-infra
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: cloudnativedaysjp/dreamkast-infra
+          path: dreamkast-infra
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: Cleanup
+        working-directory: dreamkast-infra/ecspresso/reviewapps
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREFIX: ${{ inputs.prefix }}
+        shell: bash -xe {0}
+        run: |
+          EXPECTED="$(gh pr list --repo ${{ github.repository }} --label 'reviewapps' --json number --jq '.[].number' | sed 's/^\(.*\)$/'"$PREFIX"'\1/g')"
+          # shellcheck disable=SC2010,SC2086
+          ACTUAL="$(ls | grep -E ^$PREFIX ||:)"
+
+          # If present only in ACTUAL, cleanup
+          for act in $ACTUAL; do
+            EXIST=false
+            for exp in $EXPECTED; do
+              [ "$act" = "$exp" ] && EXIST=true
+            done
+            [ "$EXIST" = "true" ] && continue
+            bash -x "$act/cleanup.sh"
+            rm -rf "$act"
+          done
+
+      - name: Commit files
+        id: commit_files
+        continue-on-error: true
+        working-directory: dreamkast-infra/
+        run: |
+          APP_USER_ID=$(curl -sSL --globoff "https://api.github.com/users/${{ steps.app-token.outputs.app-slug }}[bot]" | jq -r .id)
+          git config --local user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config --local user.email "${APP_USER_ID}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+          git status
+          git add -A
+          git commit -a -F- <<EOM
+          cleanup ReviewApps by GHA in ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}
+          action URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          EOM
+
+      - name: Push changes
+        if: steps.commit_files.outcome == 'success'
+        uses: ad-m/github-push-action@d91a481090679876dfc4178fef17f286781251df # v0.8.0
+        with:
+          github_token: ${{ steps.generate_token.outputs.token }}
+          repository: cloudnativedaysjp/dreamkast-infra
+          directory: dreamkast-infra
+          branch: gitops/reviewapps/${{ github.repository }}/${{ env.UNIXTIME }}
+
+      - name: Create and Merge Pull Request
+        if: steps.commit_files.outcome == 'success'
+        uses: "actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea" # v7.0.1
+        with:
+          github-token: ${{ steps.generate_token.outputs.token }}
+          script: |
+            const pr = await github.rest.pulls.create({
+              owner: "cloudnativedaysjp",
+              repo: "dreamkast-infra",
+              title: "Automated PR (gitops/reviewapps/${{ github.repository }})",
+              body: "**this PR is automatically created & merged**",
+              head: "gitops/reviewapps/${{ github.repository }}/${{ env.UNIXTIME }}",
+              base: "main"
+            });
+            await github.rest.pulls.merge({
+              owner: "cloudnativedaysjp",
+              repo: "dreamkast-infra",
+              pull_number: pr.data.number,
+              merge_method: "squash",
+            });

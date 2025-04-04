@@ -1,0 +1,71 @@
+name: update ECS manifests for Review Apps
+
+on:
+  workflow_call:
+    inputs:
+      aws_region:
+        type: string
+        default: us-west-2
+    secrets:
+      APP_ID:
+        description: the ID of GitHub App with the role that pull/push to dreamkast-infra
+        required: true
+      APP_PRIVATE_KEY:
+        description: the private key of GitHub App with the role that pull/push to dreamkast-infra
+        required: true
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+    outputs:
+      pr_number:
+        value: ${{ jobs.check-if-reviewapp.outputs.pr_number }}
+      pr_commit:
+        value: ${{ jobs.check-if-reviewapp.outputs.pr_commit }}
+
+# this workflow should not work with cleanup workflow
+concurrency: reviewapps
+
+jobs:
+  check-if-reviewapp:
+    name: create reviewapp files to dreamkast-infra
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read 
+    outputs:
+      outcome: ${{ steps.check_if_reviewapp.outcome }}
+      pr_number: ${{ steps.check_if_reviewapp.outputs.pr_number }}
+      pr_commit: ${{ steps.check_if_reviewapp.outputs.pr_commit }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # checkout branch even if triggered by PullRequest Label
+          ref: ${{ github.head_ref }}
+
+      - id: check_if_reviewapp
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUMBER=$(gh pr view --json number -q .number)
+          gh pr view --json labels -q .labels | jq '.[] | select(.name == "reviewapps")' -e
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          # the following is needed because it cannot be retrieved
+          # from ${{ github.sha }} if triggered by PullRequest Label
+          echo "pr_commit=$(gh pr view --json commits | jq -r '.commits[-1].oid')" >> "$GITHUB_OUTPUT"
+
+  gitops:
+    needs: check-if-reviewapp
+    if: needs.check-if-reviewapp.outputs.outcome == 'success'
+    uses: ./.github/workflows/update-ecs-manifest.yml
+    with:
+      environment: reviewapps
+      reviewapp_aws_region: ${{ inputs.aws_region }}
+      reviewapp_pr_number: ${{ needs.check-if-reviewapp.outputs.pr_number }}
+      reviewapp_pr_commit: ${{ needs.check-if-reviewapp.outputs.pr_commit }}
+    secrets:
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

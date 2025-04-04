@@ -1,0 +1,17 @@
+name: run common linters for GitHub Action
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+
+jobs:
+  lint:
+    name: actionlint with reviewdog
+    uses: ./.github/workflows/lint-actions.yml
+    permissions:
+      contents: write
+      pull-requests: write
+    secrets:
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}

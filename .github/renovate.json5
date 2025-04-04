@@ -1,0 +1,15 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+  ],
+  "labels": ["dependencies"],
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "all dependencies on GitHub Actions",
+    },
+  ],
+  "enabledManagers": [
+    "github-actions",
+  ],
+}
