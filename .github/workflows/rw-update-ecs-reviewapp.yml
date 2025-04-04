@@ -28,11 +28,12 @@ concurrency: reviewapps
 
 jobs:
   check-if-reviewapp:
-    name: create reviewapp files to dreamkast-infra
+    name: Check if the triggered event is for building review app
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: read 
+    timeout-minutes: 3
     outputs:
       outcome: ${{ steps.check_if_reviewapp.outcome }}
       pr_number: ${{ steps.check_if_reviewapp.outputs.pr_number }}
@@ -40,6 +41,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          persist-credentials: false
           # checkout branch even if triggered by PullRequest Label
           ref: ${{ github.head_ref }}
 
@@ -59,6 +61,7 @@ jobs:
     needs: check-if-reviewapp
     if: needs.check-if-reviewapp.outputs.outcome == 'success'
     uses: ./.github/workflows/rw-update-ecs-manifest.yml
+    permissions: {}
     with:
       environment: reviewapps
       reviewapp_aws_region: ${{ inputs.aws_region }}
