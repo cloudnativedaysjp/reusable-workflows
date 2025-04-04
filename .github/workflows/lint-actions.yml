@@ -7,7 +7,6 @@ on:
 
 jobs:
   lint:
-    name: actionlint with reviewdog
     uses: ./.github/workflows/rw-lint-actions.yml
     permissions:
       contents: write
