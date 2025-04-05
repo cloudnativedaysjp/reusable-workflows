@@ -13,8 +13,10 @@ on:
 
 jobs:
   tagging:
-    runs-on: ubuntu-latest
     if: ${{ github.event.pull_request.state == 'closed' }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    timeout-minutes: 3
     steps:
       # to trigger other Actions caused by adding reviewapp Label
       - name: Generate token
@@ -27,6 +29,8 @@ jobs:
 
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          # TODO: stop using actions-ecosystem in order to set persist-credentials to false
+          persist-credentials: true
           token: ${{ steps.app-token.outputs.token }}
 
       - uses: actions-ecosystem/action-release-label@1c7ef83d383a57bf253a2e2e9dfe1b55f445ae15 # v1.2.0

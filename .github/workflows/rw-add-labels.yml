@@ -14,6 +14,8 @@ on:
 jobs:
   labeler:
     runs-on: ubuntu-latest
+    permissions: {}
+    timeout-minutes: 3
     steps:
       # to trigger other Actions caused by adding reviewapp Label
       - name: Generate token

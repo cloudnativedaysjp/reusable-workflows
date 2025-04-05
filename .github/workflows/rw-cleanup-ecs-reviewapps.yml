@@ -26,8 +26,9 @@ concurrency: reviewapps
 
 jobs:
   cleanup:
-    name: create reviewapp files to dreamkast-infra
     runs-on: ubuntu-latest
+    permissions: {}
+    timeout-minutes: 10
     steps:
       - name: Set current unixtime as env variable
         env:
@@ -51,6 +52,7 @@ jobs:
       - name: Checkout dreamkast-infra
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          persist-credentials: false
           repository: cloudnativedaysjp/dreamkast-infra
           path: dreamkast-infra
           token: ${{ steps.app-token.outputs.token }}
@@ -103,7 +105,7 @@ jobs:
         if: steps.commit_files.outcome == 'success'
         uses: ad-m/github-push-action@d91a481090679876dfc4178fef17f286781251df # v0.8.0
         with:
-          github_token: ${{ steps.generate_token.outputs.token }}
+          github_token: ${{ steps.app-token.outputs.token }}
           repository: cloudnativedaysjp/dreamkast-infra
           directory: dreamkast-infra
           branch: gitops/reviewapps/${{ github.repository }}/${{ env.UNIXTIME }}
@@ -112,7 +114,7 @@ jobs:
         if: steps.commit_files.outcome == 'success'
         uses: "actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea" # v7.0.1
         with:
-          github-token: ${{ steps.generate_token.outputs.token }}
+          github-token: ${{ steps.app-token.outputs.token }}
           script: |
             const pr = await github.rest.pulls.create({
               owner: "cloudnativedaysjp",
