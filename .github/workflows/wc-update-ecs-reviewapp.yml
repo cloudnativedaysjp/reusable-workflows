@@ -60,7 +60,7 @@ jobs:
   gitops:
     needs: check-if-reviewapp
     if: needs.check-if-reviewapp.outputs.outcome == 'success'
-    uses: ./.github/workflows/rw-update-ecs-manifest.yml
+    uses: ./.github/workflows/wc-update-ecs-manifest.yml
     permissions: {}
     with:
       environment: reviewapps

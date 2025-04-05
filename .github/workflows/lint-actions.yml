@@ -7,7 +7,7 @@ on:
 
 jobs:
   lint:
-    uses: ./.github/workflows/rw-lint-actions.yml
+    uses: ./.github/workflows/wc-lint-actions.yml
     permissions:
       contents: write
       pull-requests: write
