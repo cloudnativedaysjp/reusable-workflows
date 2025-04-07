@@ -1,0 +1,48 @@
+name: CIs on pull requests
+
+on: pull_request
+
+jobs:
+  path-filter: # Get changed files to filter jobs
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions: {}
+    outputs:
+      lint-actions: ${{steps.changes.outputs.lint-actions}}
+    steps:
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: changes
+        with:
+          filters: |
+            lint-actions:
+              - .github/workflows/*
+              - aqua.yaml
+              - .github/ghalint.yml
+              - .github/pinact.yml
+
+  status-check: # for Rulesets/main
+    runs-on: ubuntu-latest
+    if: failure()
+    timeout-minutes: 10
+    permissions: {}
+    needs:
+      - lint-actions
+    steps:
+      - run: exit 1
+
+  #
+  # main CIs
+  #
+
+  lint-actions:
+    needs: path-filter
+    if: needs.path-filter.outputs.lint-actions == 'true'
+    uses: ./.github/workflows/wc-lint-actions.yml
+    permissions:
+      contents: write
+      pull-requests: write
+    secrets:
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+
+
