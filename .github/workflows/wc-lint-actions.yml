@@ -16,6 +16,7 @@ env:
 
 jobs:
   actionlint:
+    if: ${{ github.event.pull_request != null }}
     name: actionlint with reviewdog
     runs-on: ubuntu-latest
     permissions:
