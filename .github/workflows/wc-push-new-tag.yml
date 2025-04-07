@@ -15,7 +15,8 @@ jobs:
   tagging:
     if: ${{ github.event.pull_request.state == 'closed' }}
     runs-on: ubuntu-latest
-    permissions: {}
+    permissions:
+      pull-requests: write
     timeout-minutes: 3
     steps:
       # to trigger other Actions caused by adding reviewapp Label
@@ -53,3 +54,10 @@ jobs:
         with:
           tag: ${{ steps.bump-semver.outputs.new_version }}
           message: '${{ steps.bump-semver.outputs.new_version }}: PR #${{ github.event.pull_request.number }} ${{ github.event.pull_request.title }}'
+
+      - uses: marocchino/sticky-pull-request-comment@52423e01640425a022ef5fd42c6fb5f633a02728 # v2.9.1
+        if: ${{ steps.release-label.outputs.level != null }}
+        with:
+          number: ${{ github.event.number }}
+          message: |
+            ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${{ steps.bump-semver.outputs.new_version }} will be released.
