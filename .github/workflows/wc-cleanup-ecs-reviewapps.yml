@@ -89,7 +89,7 @@ jobs:
         id: check-diff
         run: |
           git add . --intent-to-add
-          if git diff-index --exit-code --quiet HEAD --; then
+          if git diff --exit-code --quiet HEAD --; then
             echo "changes=false" >> "$GITHUB_OUTPUT"
           else
             echo "changes=true" >> "$GITHUB_OUTPUT"
