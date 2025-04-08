@@ -54,7 +54,6 @@ jobs:
         with:
           persist-credentials: false
           repository: cloudnativedaysjp/dreamkast-infra
-          path: dreamkast-infra
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Configure AWS Credentials
@@ -65,7 +64,7 @@ jobs:
           aws-region: ${{ inputs.aws_region }}
 
       - name: Cleanup
-        working-directory: dreamkast-infra/ecspresso/reviewapps
+        working-directory: ecspresso/reviewapps
         env:
           GH_TOKEN: ${{ github.token }}
           PREFIX: ${{ inputs.prefix }}
@@ -86,32 +85,29 @@ jobs:
             rm -rf "$act"
           done
 
-      - name: Commit files
-        id: commit_files
-        continue-on-error: true
-        working-directory: dreamkast-infra/
+      - name: check diff
+        id: check-diff
         run: |
-          APP_USER_ID=$(curl -sSL --globoff "https://api.github.com/users/${{ steps.app-token.outputs.app-slug }}[bot]" | jq -r .id)
-          git config --local user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
-          git config --local user.email "${APP_USER_ID}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
-          git status
-          git add -A
-          git commit -a -F- <<EOM
-          cleanup ReviewApps by GHA in ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}
-          action URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
-          EOM
+          git add . --intent-to-add
+          if git diff-index --exit-code --quiet HEAD --; then
+            echo "changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changes=true" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Push changes
-        if: steps.commit_files.outcome == 'success'
-        uses: ad-m/github-push-action@d91a481090679876dfc4178fef17f286781251df # v0.8.0
+      - name: Commit files
+        if: steps.check-diff.outputs.changes == 'true'
+        uses: suzuki-shunsuke/commit-action@9faad521ea6a1e768439ffbe6b25b6cb3fc1b181 # v0.0.6
         with:
-          github_token: ${{ steps.app-token.outputs.token }}
           repository: cloudnativedaysjp/dreamkast-infra
-          directory: dreamkast-infra
           branch: gitops/reviewapps/${{ github.repository }}/${{ env.UNIXTIME }}
+          github_token: ${{ steps.app-token.outputs.token }}
+          commit_message: |
+            cleanup ReviewApps by GHA in ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}
+            action URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
 
       - name: Create and Merge Pull Request
-        if: steps.commit_files.outcome == 'success'
+        if: steps.check-diff.outputs.changes == 'true'
         uses: "actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea" # v7.0.1
         with:
           github-token: ${{ steps.app-token.outputs.token }}
