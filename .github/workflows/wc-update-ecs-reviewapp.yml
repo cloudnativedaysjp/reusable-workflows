@@ -18,6 +18,8 @@ on:
       AWS_SECRET_ACCESS_KEY:
         required: true
     outputs:
+      outcome:
+        value: ${{ jobs.check-if-reviewapp.outputs.outcome }}
       pr_number:
         value: ${{ jobs.check-if-reviewapp.outputs.pr_number }}
       pr_commit:
