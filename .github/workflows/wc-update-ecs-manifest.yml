@@ -151,7 +151,7 @@ jobs:
 
       - name: Commit files
         if: steps.check-diff.outputs.changes == 'true'
-        uses: suzuki-shunsuke/commit-action@9faad521ea6a1e768439ffbe6b25b6cb3fc1b181 # v0.0.6
+        uses: suzuki-shunsuke/commit-action@cc96d3a3fd959d05e9b79ca395eb30b835aeba24 # v0.0.7
         with:
           repository: cloudnativedaysjp/dreamkast-infra
           branch: gitops/${{ inputs.environment }}/${{ github.repository }}/${{ env.UNIXTIME }}
