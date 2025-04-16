@@ -81,7 +81,7 @@ jobs:
         uses: aquasecurity/trivy-action@6c175e9c4083a92bbca2f9724c8a5e33bc2d97a5 # 0.30.0
         if: ${{ inputs.run-trivy == true }}
         with:
-          image-ref: ${{ steps.login-ecr.outputs.registry }}/${{ inputs.image_name }}:${{ github.sha }}
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/${{ inputs.image_name }}:commit-${{ github.sha }}
           format: 'table'
           exit-code: '0'
           ignore-unfixed: true
