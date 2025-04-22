@@ -54,7 +54,6 @@ jobs:
         with:
           persist-credentials: false
           repository: cloudnativedaysjp/dreamkast-infra
-          token: ${{ steps.app-token.outputs.token }}
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722 # v4.1.0
@@ -95,16 +94,30 @@ jobs:
             echo "changes=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # TODO(kanata): investigate the issue that suzuki-shunsuke/commit-action didn't commit delete files
+      #- name: Commit files
+      #  if: steps.check-diff.outputs.changes == 'true'
+      #  uses: suzuki-shunsuke/commit-action@cc96d3a3fd959d05e9b79ca395eb30b835aeba24 # v0.0.7
+      #  with:
+      #    repository: cloudnativedaysjp/dreamkast-infra
+      #    branch: gitops/reviewapps/${{ github.repository }}/${{ env.UNIXTIME }}
+      #    github_token: ${{ steps.app-token.outputs.token }}
+      #    commit_message: |
+      #      cleanup ReviewApps by GHA in ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}
+      #      action URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+
       - name: Commit files
         if: steps.check-diff.outputs.changes == 'true'
-        uses: suzuki-shunsuke/commit-action@cc96d3a3fd959d05e9b79ca395eb30b835aeba24 # v0.0.7
-        with:
-          repository: cloudnativedaysjp/dreamkast-infra
-          branch: gitops/reviewapps/${{ github.repository }}/${{ env.UNIXTIME }}
-          github_token: ${{ steps.app-token.outputs.token }}
-          commit_message: |
-            cleanup ReviewApps by GHA in ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}
-            action URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+        run: |
+          APP_USER_ID=$(curl -sSL --globoff "https://api.github.com/users/${{ steps.app-token.outputs.app-slug }}[bot]" | jq -r .id)
+          git config --local user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config --local user.email "${APP_USER_ID}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+          git status
+          git add -A
+          git commit -a -F- <<EOM
+          cleanup ReviewApps by GHA in ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}
+          action URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          EOM
 
       - name: Create and Merge Pull Request
         if: steps.check-diff.outputs.changes == 'true'
