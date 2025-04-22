@@ -125,7 +125,6 @@ jobs:
         with:
           github_token: ${{ steps.app-token.outputs.token }}
           repository: cloudnativedaysjp/dreamkast-infra
-          directory: dreamkast-infra
           branch: "gitops/reviewapps/${{ github.repository }}/${{ env.UNIXTIME }}"
 
       - name: Create and Merge Pull Request
