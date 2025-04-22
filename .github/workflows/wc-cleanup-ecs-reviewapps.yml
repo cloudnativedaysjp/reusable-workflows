@@ -119,6 +119,15 @@ jobs:
           action URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
           EOM
 
+      - name: Push changes
+        if: steps.check-diff.outputs.changes == 'true'
+        uses: ad-m/github-push-action@d91a481090679876dfc4178fef17f286781251df # v0.8.0
+        with:
+          github_token: ${{ steps.app-token.outputs.token }}
+          repository: cloudnativedaysjp/dreamkast-infra
+          directory: dreamkast-infra
+          branch: "gitops/reviewapps/${{ github.repository }}/${{ env.UNIXTIME }}"
+
       - name: Create and Merge Pull Request
         if: steps.check-diff.outputs.changes == 'true'
         uses: "actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea" # v7.0.1
