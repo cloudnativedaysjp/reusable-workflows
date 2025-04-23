@@ -31,7 +31,8 @@ concurrency: reviewapps
 jobs:
   cleanup:
     runs-on: ubuntu-latest
-    permissions: {}
+    permissions:
+      id-token: write
     timeout-minutes: 10
     steps:
       - name: Set current unixtime as env variable

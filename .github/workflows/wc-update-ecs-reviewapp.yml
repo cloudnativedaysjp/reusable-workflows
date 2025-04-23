@@ -68,7 +68,8 @@ jobs:
     needs: check-if-reviewapp
     if: needs.check-if-reviewapp.outputs.outcome == 'success'
     uses: ./.github/workflows/wc-update-ecs-manifest.yml
-    permissions: {}
+    permissions:
+      id-token: write
     with:
       environment: reviewapps
       reviewapp_aws_region: ${{ inputs.aws_region }}
