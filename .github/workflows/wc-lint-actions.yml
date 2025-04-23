@@ -8,10 +8,10 @@ on:
         default: any
     secrets:
       APP_ID:
-        description: the ID of GitHub App with the role of tag push 
+        description: the ID of GitHub App with the role of tag push
         required: true
       APP_PRIVATE_KEY:
-        description: the private key of GitHub App with the role of tag push 
+        description: the private key of GitHub App with the role of tag push
         required: true
 
 env:

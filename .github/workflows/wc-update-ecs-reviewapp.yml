@@ -6,6 +6,14 @@ on:
       aws_region:
         type: string
         default: us-west-2
+      aws_role_to_assume:
+        description: >
+          AWS IAM Role to assume using GitHub OIDC Provider.
+          To use it, you have to update `allowed_github_repositories` in
+          https://github.com/cloudnativedaysjp/terraform/blob/main/github_actions_assume_aws_role/main.tf
+        type: string
+        default: "arn:aws:iam::607167088920:role/github-actions-dreamkast"
+
     secrets:
       APP_ID:
         description: the ID of GitHub App with the role that pull/push to dreamkast-infra
@@ -13,10 +21,7 @@ on:
       APP_PRIVATE_KEY:
         description: the private key of GitHub App with the role that pull/push to dreamkast-infra
         required: true
-      AWS_ACCESS_KEY_ID:
-        required: true
-      AWS_SECRET_ACCESS_KEY:
-        required: true
+
     outputs:
       outcome:
         value: ${{ jobs.check-if-reviewapp.outputs.outcome }}
@@ -34,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read 
+      pull-requests: read
     timeout-minutes: 3
     outputs:
       outcome: ${{ steps.check_if_reviewapp.outcome }}
@@ -63,14 +68,14 @@ jobs:
     needs: check-if-reviewapp
     if: needs.check-if-reviewapp.outputs.outcome == 'success'
     uses: ./.github/workflows/wc-update-ecs-manifest.yml
-    permissions: {}
+    permissions:
+      id-token: write
     with:
       environment: reviewapps
       reviewapp_aws_region: ${{ inputs.aws_region }}
       reviewapp_pr_number: ${{ needs.check-if-reviewapp.outputs.pr_number }}
       reviewapp_pr_commit: ${{ needs.check-if-reviewapp.outputs.pr_commit }}
+      reviewapp_aws_role_to_assume: ${{ inputs.aws_role_to_assume }}
     secrets:
       APP_ID: ${{ secrets.APP_ID }}
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

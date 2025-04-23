@@ -19,6 +19,9 @@ on:
       reviewapp_pr_number:
         description: required when environment is reviewapps
         type: string
+      reviewapp_aws_role_to_assume:
+        description: required when environment is reviewapps
+        type: string
     secrets:
       APP_ID:
         description: the ID of GitHub App with the role that pull/push to dreamkast-infra
@@ -26,17 +29,12 @@ on:
       APP_PRIVATE_KEY:
         description: the private key of GitHub App with the role that pull/push to dreamkast-infra
         required: true
-      AWS_ACCESS_KEY_ID:
-        description: required when environment is reviewapps
-        required: false
-      AWS_SECRET_ACCESS_KEY:
-        description: required when environment is reviewapps
-        required: false
 
 jobs:
   gitops:
     runs-on: ubuntu-latest
-    permissions: {}
+    permissions:
+      id-token: write
     timeout-minutes: 10
     steps:
       - name: Set current unixtime as env variable
@@ -74,10 +72,10 @@ jobs:
         working-directory: ecspresso/${{ inputs.environment }}
         run: |
           if [ "${{ inputs.environment }}" == "prod" ]; then
-            # For production, use the git tag name as the docker image's tag 
+            # For production, use the git tag name as the docker image's tag
             IMAGE_TAG=release-${GITHUB_REF#refs/*/}
           elif [ "${{ inputs.environment }}" == "stg" ]; then
-            # For staging, use the commit hash as the docker image's tag 
+            # For staging, use the commit hash as the docker image's tag
             IMAGE_TAG=commit-${{ github.sha }}
           else
             echo "unknown environments: ${{ inputs.environment }}"
@@ -96,12 +94,11 @@ jobs:
           mv const.libsonnet.tmp const.libsonnet
           jsonnetfmt -i const.libsonnet
 
-      - name: Configure AWS Credentials
+      - name: Configure AWS Credentials (OIDC)
         if: inputs.environment == 'reviewapps'
         uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722 # v4.1.0
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ inputs.reviewapp_aws_role_to_assume }}
           aws-region: ${{ inputs.reviewapp_aws_region }}
 
       - name: Create reviewapps

@@ -20,17 +20,20 @@ on:
       run-trivy:
         type: boolean
         default: false
-    secrets:
-      AWS_ACCESS_KEY_ID:
-        required: true
-      AWS_SECRET_ACCESS_KEY:
-        required: true
+      aws_role_to_assume:
+        description: >
+          AWS IAM Role to assume using GitHub OIDC Provider.
+          To use it, you have to update `allowed_github_repositories` in
+          https://github.com/cloudnativedaysjp/terraform/blob/main/github_actions_assume_aws_role/main.tf
+        type: string
+        default: "arn:aws:iam::607167088920:role/github-actions-dreamkast"
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -41,11 +44,10 @@ jobs:
         id: buildx
         uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
 
-      - name: Configure AWS Credentials
+      - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722 # v4.1.0
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ inputs.aws_role_to_assume }}
           aws-region: ${{ inputs.aws_region }}
 
       - name: Login to Amazon ECR
