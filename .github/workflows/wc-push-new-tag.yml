@@ -60,4 +60,4 @@ jobs:
         with:
           number: ${{ github.event.number }}
           message: |
-            ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${{ steps.bump-semver.outputs.new_version }} will be released.
+            ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.bump-semver.outputs.new_version }} will be released.
