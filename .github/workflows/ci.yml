@@ -39,10 +39,7 @@ jobs:
     if: needs.path-filter.outputs.lint-actions == 'true'
     uses: ./.github/workflows/wc-lint-actions.yml
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
-    secrets:
-      APP_ID: ${{ secrets.APP_ID }}
-      APP_PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-
-
+    with:
+      pinact-skip-push: true
