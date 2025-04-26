@@ -2,7 +2,7 @@
 excludes:
   # action_ref_should_be_full_length_commit_sha will be detected by pinact
   - policy_name: action_ref_should_be_full_length_commit_sha
-    action_name: "**/*"
+    action_name: "*/*"
   # TODO(kanata): stop using actions-ecosystem in order to set persist-credentials to false
   - policy_name: checkout_persist_credentials_should_be_false
     workflow_file_path: .github/workflows/wc-push-new-tag.yml
