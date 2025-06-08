@@ -54,6 +54,16 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2.0.1
 
+      - name: Check
+        id: is-default-branch-pushed
+        run: |
+          default_branch=$(git symbolic-ref refs/remotes/origin/HEAD | awk -F'[/]' '{print $NF}')
+          if [ "${{ github.ref_name }}" = "${default_branch}" ]; then
+            echo "result=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
@@ -61,6 +71,7 @@ jobs:
           images: ${{ steps.login-ecr.outputs.registry }}/${{ inputs.image_name }}
           tags: |
             prefix=commit-,type=sha,format=long
+            prefix=main-,type=sha,format=long,enable=${{steps.is-default-branch-pushed.outputs.result}}
             prefix=branch-,type=ref,event=branch
             prefix=release-,type=ref,event=tag
 
