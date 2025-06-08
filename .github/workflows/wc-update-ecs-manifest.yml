@@ -76,7 +76,7 @@ jobs:
             IMAGE_TAG=release-${GITHUB_REF#refs/*/}
           elif [ "${{ inputs.environment }}" == "stg" ]; then
             # For staging, use the commit hash as the docker image's tag
-            IMAGE_TAG=commit-${{ github.sha }}
+            IMAGE_TAG=main-${{ github.sha }}
           else
             echo "unknown environments: ${{ inputs.environment }}"
             exit 1
