@@ -56,12 +56,13 @@ jobs:
 
       - name: Check
         id: is-default-branch-pushed
+        shell: bash -xe {0}
         run: |
           default_branch=$(git symbolic-ref refs/remotes/origin/HEAD | awk -F'[/]' '{print $NF}')
           if [ "${{ github.ref_name }}" = "${default_branch}" ]; then
             echo "result=true" >> "$GITHUB_OUTPUT"
           else
-            echo "result=true" >> "$GITHUB_OUTPUT"
+            echo "result=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Docker meta
