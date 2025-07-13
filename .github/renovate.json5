@@ -1,18 +1,22 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:base",
-    "github>aquaproj/aqua-renovate-config#2.8.2",
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:recommended',
+    'github>aquaproj/aqua-renovate-config#2.8.2',
   ],
-  "labels": ["dependencies"],
-  "packageRules": [
+  labels: [
+    'dependencies',
+  ],
+  packageRules: [
     {
-      "matchManagers": ["github-actions"],
-      "groupName": "all dependencies on GitHub Actions",
+      matchManagers: [
+        'github-actions',
+      ],
+      groupName: 'all dependencies on GitHub Actions',
     },
   ],
-  "enabledManagers": [
-    "github-actions",
-    "regex",
+  enabledManagers: [
+    'github-actions',
+    'custom.regex',
   ],
 }
