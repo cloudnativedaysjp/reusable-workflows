@@ -58,8 +58,7 @@ jobs:
         id: is-default-branch-pushed
         shell: bash -xe {0}
         run: |
-          default_branch=$(git symbolic-ref refs/remotes/origin/HEAD | awk -F'[/]' '{print $NF}')
-          if [ "${{ github.ref_name }}" = "${default_branch}" ]; then
+          if [[ "${{ github.ref_name }}" = "main" ]] || [[ "${{ github.ref_name }}" = "master" ]]; then
             echo "result=true" >> "$GITHUB_OUTPUT"
           else
             echo "result=false" >> "$GITHUB_OUTPUT"
