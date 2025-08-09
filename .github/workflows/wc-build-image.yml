@@ -54,15 +54,31 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2.0.1
 
-      - name: Check
-        id: is-default-branch-pushed
+      - name: Check trigger type
+        id: check-trigger-type
         shell: bash -xe {0}
         run: |
-          if [[ "${{ github.ref_name }}" = "main" ]] || [[ "${{ github.ref_name }}" = "master" ]]; then
-            echo "result=true" >> "$GITHUB_OUTPUT"
+          {
+          if [[ "${{github.ref_type}}" = "tag" ]]; then
+              echo "enable_commit=false"
+              echo "enable_main=false"
+              echo "enable_release=true"
+          elif [[ "${{github.ref_type}}" = "branch" ]]; then
+            if [[ "${{ github.ref_name }}" = "main" ]] || [[ "${{ github.ref_name }}" = "master" ]]; then
+              echo "enable_commit=false"
+              echo "enable_main=true"
+              echo "enable_release=false"
+            else
+              echo "enable_commit=true"
+              echo "enable_main=false"
+              echo "enable_release=false"
+            fi
           else
-            echo "result=false" >> "$GITHUB_OUTPUT"
+              echo "enable_commit=false"
+              echo "enable_main=false"
+              echo "enable_release=false"
           fi
+          } >> "$GITHUB_OUTPUT"
 
       - name: Docker meta
         id: meta
@@ -70,10 +86,9 @@ jobs:
         with:
           images: ${{ steps.login-ecr.outputs.registry }}/${{ inputs.image_name }}
           tags: |
-            prefix=commit-,type=sha,format=long
-            prefix=main-,type=sha,format=long,enable=${{steps.is-default-branch-pushed.outputs.result}}
-            prefix=branch-,type=ref,event=branch
-            prefix=release-,type=ref,event=tag
+            prefix=commit-,type=sha,format=long,enable=${{steps.check-trigger-type.outputs.enable_commit}}
+            prefix=main-,type=sha,format=long,enable=${{steps.check-trigger-type.outputs.enable_main}}
+            prefix=release-,type=ref,event=tag,enable=${{steps.check-trigger-type.outputs.enable_release}}
 
       - name: Build
         id: docker_build
