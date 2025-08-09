@@ -24,24 +24,6 @@ jobs:
       - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
-            // MEMO: please comment out the follwoing if you execute this script in local
-            //import { Octokit } from "@octokit/rest";
-            //import fetch from "node-fetch";
-            //const github = new Octokit({
-            //  auth: "${YOUR_TOKEN}",
-            //  request: {
-            //    fetch: fetch,
-            //  },
-            //})
-            //const context = {
-            //  "repo": {
-            //    "owner": "cloudnativedaysjp",
-            //    "repo": "dreamkast",
-            //  }
-            //}
-            // const targetLabel = 'reviewapps';
-            // const targetDays = 3;
-
             const targetLabel = '${{ inputs.target-label }}';
             const targetDays =  ${{ inputs.target-days }};
 
@@ -52,6 +34,7 @@ jobs:
               repo: context.repo.repo,
               state: "open",
             });
+            await Promise.all(
             prs.data.filter(d => {
               const updatedAt = new Date(Date.parse(d.updated_at));
               return updatedAt < borderDate && d.labels.some(label => label.name == targetLabel);
@@ -62,4 +45,5 @@ jobs:
                 repo: context.repo.repo,
                 issue_number: pr.number,
               })
-            });
+            })
+            );
