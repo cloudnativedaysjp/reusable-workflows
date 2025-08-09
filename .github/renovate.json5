@@ -7,8 +7,8 @@
   "labels": ["dependencies"],
   "packageRules": [
     {
-      "matchManagers": ["github-actions"],
-      "groupName": "all dependencies on GitHub Actions",
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "all minor and patch dependencies"
     },
   ],
   "enabledManagers": [
