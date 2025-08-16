@@ -88,6 +88,7 @@ jobs:
           tags: |
             prefix=commit-,type=sha,format=long,enable=${{steps.check-trigger-type.outputs.enable_commit}}
             prefix=main-,type=sha,format=long,enable=${{steps.check-trigger-type.outputs.enable_main}}
+            prefix=branch-,type=ref,event=branch,enable=${{steps.check-trigger-type.outputs.enable_main}}
             prefix=release-,type=ref,event=tag,enable=${{steps.check-trigger-type.outputs.enable_release}}
 
       - name: Build
