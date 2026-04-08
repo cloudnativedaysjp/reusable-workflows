@@ -12,9 +12,6 @@ on:
       dockerfile_path:
         type: string
         default: ./Dockerfile
-      platforms:
-        type: string
-        default: linux/amd64
       build_args:
         type: string
       run-trivy:
@@ -30,7 +27,14 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - runs-on: ubuntu-24.04
+            arch: amd64
+          - runs-on: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runs-on }}
     permissions:
       contents: read
       id-token: write
@@ -44,6 +48,38 @@ jobs:
         id: buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          role-to-assume: ${{ inputs.aws_role_to_assume }}
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2.0.1
+
+      - name: Build and push
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: ./
+          file: ${{ inputs.dockerfile_path }}
+          builder: ${{ steps.buildx.outputs.name }}
+          push: true
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ inputs.image_name }}:${{ github.sha }}-${{ matrix.arch }}
+          provenance: false
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
+          build-args: ${{ inputs.build_args }}
+          platforms: linux/${{ matrix.arch }}
+
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    timeout-minutes: 10
+    steps:
       - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
@@ -91,20 +127,18 @@ jobs:
             prefix=branch-,type=ref,event=branch,enable=${{steps.check-trigger-type.outputs.enable_main}}
             prefix=release-,type=ref,event=tag,enable=${{steps.check-trigger-type.outputs.enable_release}}
 
-      - name: Build
-        id: docker_build
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
-        with:
-          context: ./
-          file: ${{ inputs.DOCKERFILE_PATH }}
-          builder: ${{ steps.buildx.outputs.name }}
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: ${{ inputs.build_args }}
-          platforms: ${{ inputs.platforms }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      - name: Create multi-arch manifest
+        run: |
+          image_base="${{ steps.login-ecr.outputs.registry }}/${{ inputs.image_name }}"
+          for tag in ${{ steps.meta.outputs.tags }}; do
+            docker buildx imagetools create \
+              --tag "${tag}" \
+              "${image_base}:${{ github.sha }}-amd64" \
+              "${image_base}:${{ github.sha }}-arm64"
+          done
       # trivyのスキャンが転けるのでコメントアウト
       # - name: Run Trivy vulnerability scanner
       #   uses: aquasecurity/trivy-action@f9424c10c36e288d5fa79bd3dfd1aeb2d6eae808 # 0.33.0
