@@ -46,7 +46,7 @@ jobs:
       pr_number: ${{ steps.check_if_reviewapp.outputs.pr_number }}
       pr_commit: ${{ steps.check_if_reviewapp.outputs.pr_commit }}
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
           # checkout branch even if triggered by PullRequest Label
